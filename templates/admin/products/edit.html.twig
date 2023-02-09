@@ -1,0 +1,14 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Modifier un article{% endblock %}
+
+{% block body %}
+    <main class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1>Modifier un article</h1>
+                {% include 'admin/products/_form.html.twig' with {'button_label': 'Modifier'} %}
+            </div>
+        </div>
+    </main>
+{% endblock %}
