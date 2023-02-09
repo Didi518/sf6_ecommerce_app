@@ -2,10 +2,13 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\Image;
 use App\Entity\Product;
 use App\Form\ProductFormType;
+use App\Service\PictureService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -21,7 +24,7 @@ class ProductController extends AbstractController
     }
     
     #[Route('/ajout', name: 'add')]
-    public function add(Request $request, EntityManagerInterface $manager, SluggerInterface $slugger): Response
+    public function add(Request $request, EntityManagerInterface $manager, SluggerInterface $slugger, PictureService $pictureService): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         
@@ -31,6 +34,16 @@ class ProductController extends AbstractController
         $productForm->handleRequest($request);
         
         if ($productForm->isSubmitted() && $productForm->isValid()) {
+            $images = $productForm->get('images')->getData();
+
+            foreach ($images as $image) {
+                $folder = 'products';
+                $file = $pictureService->add($image, $folder, 300, 300);
+                $img = new Image();
+                $img->setName($file);
+                $product->addImage($img);
+            } 
+
             $slug = $slugger->slug($product->getName());
             $product->setSlug($slug);
 
@@ -47,7 +60,7 @@ class ProductController extends AbstractController
     }
     
     #[Route('/edition/{id}', name: 'edit')]
-    public function edit(Product $product, Request $request, EntityManagerInterface $manager, SluggerInterface $slugger): Response
+    public function edit(Product $product, Request $request, EntityManagerInterface $manager, SluggerInterface $slugger, PictureService $pictureService): Response
     {
         $this->denyAccessUnlessGranted('PRODUCT_EDIT', $product); 
 
@@ -55,6 +68,15 @@ class ProductController extends AbstractController
         $productForm->handleRequest($request);
         
         if ($productForm->isSubmitted() && $productForm->isValid()) {
+            $images = $productForm->get('images')->getData();
+
+            foreach ($images as $image) {
+                $folder = 'products';
+                $file = $pictureService->add($image, $folder, 300, 300);
+                $img = new Image();
+                $img->setName($file);
+                $product->addImage($img);
+            }
             $slug = $slugger->slug($product->getName());
             $product->setSlug($slug);
 
@@ -66,7 +88,8 @@ class ProductController extends AbstractController
         }
 
         return $this->render('admin/products/edit.html.twig', [
-            'productForm' => $productForm->createView()
+            'productForm' => $productForm->createView(),
+            'product' => $product
         ]);
     }
     
@@ -75,5 +98,26 @@ class ProductController extends AbstractController
     {
         $this->denyAccessUnlessGranted('PRODUCT_DELETE', $product);   
         return $this->render('admin/products/index.html.twig');
+    }
+
+    #[Route('/suppression/image/{id}', name: 'delete_image', methods: ['DELETE'])]
+    public function deleteImage(Image $image, Request $request, EntityManagerInterface $manager, PictureService $pictureService): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if ($this->isCsrfTokenValid('delete' . $image->getId(), $data['_token'])) {
+            $nom = $image->getName();
+
+            if ($pictureService->delete($nom, 'products', 300, 300)) {
+                $manager->remove($image);
+                $manager->flush();
+
+                return new JsonResponse(['success' => true], 200);
+            }
+
+            return new JsonResponse(['error' => 'Erreur lors de la suppression'], 400);
+        }
+
+        return new JsonResponse(['error' => 'Token invalide'], 400);
     }
 }
