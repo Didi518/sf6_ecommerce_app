@@ -40,12 +40,12 @@ class Coupon
     #[ORM\JoinColumn(nullable: false)]
     private ?CouponType $coupon_type = null;
 
-    #[ORM\OneToMany(mappedBy: 'coupons', targetEntity: Order::class)]
-    private ?Order $order = null;
+    #[ORM\OneToMany(mappedBy: 'coupon', targetEntity: Order::class)]
+    private ?Order $orders = null;
 
     public function __construct()
     {
-        $this->order = new ArrayCollection();
+        $this->orders = new ArrayCollection();
         $this->created_at = new \DateTimeImmutable();
     }
 

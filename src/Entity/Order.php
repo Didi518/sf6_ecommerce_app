@@ -22,10 +22,10 @@ class Order
     #[ORM\Column(length: 20, unique: true)]
     private ?string $reference = null;
 
-    #[ORM\ManyToOne(inversedBy: 'orders')]
+    #[ORM\ManyToOne(targetEntity: Coupon::class, inversedBy: 'orders')]
     private ?Coupon $coupon = null;
 
-    #[ORM\ManyToOne(inversedBy: 'orders')]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'orders')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
